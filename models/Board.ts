@@ -3,6 +3,13 @@ import { Movable } from './Movable'
 
 type GroupedField = Field[][]
 
+type Grouped = {
+  byColumn: GroupedField
+  byColumnReverse: GroupedField
+  byRow: GroupedField,
+  byRowReverse: GroupedField
+}
+
 export enum Direction {
   UP,
   DOWN,
@@ -14,19 +21,13 @@ export class Board {
   private readonly _fields: Field[]
   private _boardSize: number
   private _movable: Movable
-  public _fieldsByColumn: GroupedField
-  public _fieldsByColumnReversed: GroupedField
-  public _fieldsByRow: GroupedField
-  public _fieldsByRowReversed: GroupedField
+  private _grouped: Grouped
   private _isMoving: boolean = false
 
   constructor(boardSize: number) {
     this._boardSize = boardSize
     this._fields = this.generateFields(boardSize)
-    this._fieldsByColumn = this.getFieldsByColumn()
-    this._fieldsByColumnReversed = this.getReversed(this._fieldsByColumn)
-    this._fieldsByRow = this.getFieldsByRow()
-    this._fieldsByRowReversed = this.getReversed(this._fieldsByRow)
+    this._grouped = this.getGrouped()
 
     this._movable = new Movable()
   }
@@ -61,16 +62,16 @@ export class Board {
   move(direction: Direction): void {
     switch (direction) {
       case Direction.UP:
-        this._movable.move(this._fieldsByColumn)
+        this._movable.move(this._grouped.byColumn)
         break
       case Direction.DOWN:
-        this._movable.move(this._fieldsByColumnReversed)
+        this._movable.move(this._grouped.byColumnReverse)
         break
       case Direction.LEFT:
-        this._movable.move(this._fieldsByRow)
+        this._movable.move(this._grouped.byRow)
         break
       case Direction.RIGHT:
-        this._movable.move(this._fieldsByRowReversed)
+        this._movable.move(this._grouped.byRowReverse)
         break
       default:
         return
@@ -109,6 +110,20 @@ export class Board {
     return this._fields.filter((filed) => filed.isEmpty())
   }
 
+  private getGrouped(): Grouped {
+    const byColumn = this.getFieldsByColumn()
+    const byColumnReverse = this.getReversed(byColumn)
+    const byRow = this.getFieldsByRow()
+    const byRowReverse = this.getReversed(byRow)
+
+    return {
+      byColumn,
+      byColumnReverse,
+      byRow,
+      byRowReverse
+    }
+  }
+
   private getFieldsByColumn(): GroupedField {
     return this._fields.reduce((grouped, field) => {
       if (!grouped[field.coordinates.x]) {
@@ -136,12 +151,7 @@ export class Board {
   private canMove(): boolean {
     return (
       this.hasEmptyField() ||
-      [
-        this._fieldsByColumn,
-        this._fieldsByColumnReversed,
-        this._fieldsByRow,
-        this._fieldsByRowReversed
-      ].some(this._movable.canMove)
+      Object.values(this._grouped).some(this._movable.canMove)
     )
   }
 }
